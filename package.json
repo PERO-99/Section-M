@@ -1,0 +1,18 @@
+{
+  "name": "section-m-core-hub",
+  "version": "1.0.0",
+  "description": "Premium Full-Stack Quantum Command Hub with Node.js Express backend and static frontend",
+  "main": "Backend/server.js",
+  "scripts": {
+    "start": "node Backend/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Operator #804",
+  "license": "MIT"
+}

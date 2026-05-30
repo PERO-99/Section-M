@@ -1,11 +1,21 @@
-# Use the ultra-lightweight Nginx alpine image as the base
-FROM nginx:alpine
+# Use the official Node.js lightweight Alpine image as the base
+FROM node:18-alpine
 
-# Copy our interactive Section M dashboard into Nginx's default public directory
-COPY index.html /usr/share/nginx/html/index.html
+# Set target workspace directory inside the container
+WORKDIR /usr/src/app
 
-# Expose port 80 (Render automatically detects this and routes external traffic to it)
-EXPOSE 80
+# Copy dependency manifests for caching optimization
+COPY package*.json ./
 
-# Start Nginx in the foreground to keep the container active
-CMD ["nginx", "-g", "daemon off;"]
+# Install standard dependencies
+RUN npm ci --only=production
+
+# Copy all application files (Frontend and Backend folders)
+COPY . .
+
+# Expose server port (Render will read PORT env and map it automatically)
+ENV PORT=8000
+EXPOSE 8000
+
+# Start the full-stack Express server
+CMD ["npm", "start"]

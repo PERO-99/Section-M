@@ -1749,25 +1749,6 @@
             themeColor: 'purple'
         };
 
-        const ENDPOINTS = [
-            '/api/v1/auth/verify',
-            '/api/v1/queries/spark-submit',
-            '/api/v1/compute/matrix-solve',
-            '/api/v1/quantum/entangle',
-            '/api/v1/database/ledger-sync',
-            '/api/v1/network/tunnel-open',
-            '/api/v1/storage/commit'
-        ];
-
-        const CLIENT_IPS = [
-            '10.240.12.89',
-            '192.168.10.42',
-            '127.0.0.1',
-            '10.12.94.133',
-            '172.16.89.24',
-            '10.240.14.2'
-        ];
-
         // Load Settings from Local Storage if present
         function loadSettings() {
             try {
@@ -1789,6 +1770,9 @@
                     
                     applyThemeColor(state.themeColor);
                 }
+                
+                // Sync settings with the Node.js backend
+                syncSettingsWithBackend();
             } catch (e) {
                 console.error("Error reading storage configs:", e);
             }
@@ -1804,9 +1788,21 @@
                     themeColor: state.themeColor
                 };
                 localStorage.setItem('sec_m_config', JSON.stringify(config));
+                syncSettingsWithBackend();
             } catch (e) {
                 console.error("Error writing configurations:", e);
             }
+        }
+
+        function syncSettingsWithBackend() {
+            fetch('/api/v1/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    syncIntervalMs: state.syncIntervalMs,
+                    faultRate: state.faultRate
+                })
+            }).catch(e => console.warn("Failed to synchronize settings with active Node.js server."));
         }
 
         function applyThemeColor(theme) {
@@ -1826,74 +1822,6 @@
                 root.style.setProperty('--primary-glow', 'hsla(140, 85%, 50%, 0.35)');
                 root.style.setProperty('--secondary', 'hsl(185, 95%, 48%)');
                 root.style.setProperty('--secondary-glow', 'hsla(185, 95%, 48%, 0.35)');
-            }
-        }
-
-        // Initialize transaction database with mock entries
-        function generateInitialTransactions() {
-            for (let i = 0; i < 15; i++) {
-                injectMockTransaction(true); // Quiet insert without showing toasts
-            }
-        }
-
-        // Generate dynamic single transaction
-        function injectMockTransaction(quiet = false) {
-            const id = 'TX-' + Math.floor(100000 + Math.random() * 900000);
-            const endpoint = ENDPOINTS[Math.floor(Math.random() * ENDPOINTS.length)];
-            const latency = Math.floor(12 + Math.random() * 120);
-            
-            // Payload size
-            const payload = (Math.random() * 8.5).toFixed(2) + ' KB';
-            const ip = CLIENT_IPS[Math.floor(Math.random() * CLIENT_IPS.length)];
-            
-            // Status based on fault rate configuration
-            let status = 'success';
-            const roll = Math.random();
-            if (roll < state.faultRate) {
-                status = roll < (state.faultRate / 3) ? 'error' : 'warning';
-            }
-
-            const timestamp = new Date();
-            const timeStr = timestamp.toLocaleTimeString();
-
-            const tx = { id, endpoint, latency, payload, ip, status, timeStr };
-            
-            // Prepend transaction record
-            state.transactions.unshift(tx);
-            if (state.transactions.length > 50) {
-                state.transactions.pop();
-            }
-
-            // Also inject in alerts if error or warning
-            if (status !== 'success') {
-                injectAlert(tx, quiet);
-            }
-
-            if (!quiet && state.activeTab === 'database') {
-                renderTransactionsTable();
-            }
-        }
-
-        // Alert systems
-        function injectAlert(tx, quiet = false) {
-            const alertItem = {
-                id: 'AL-' + Math.floor(1000 + Math.random() * 9000),
-                txId: tx.id,
-                message: tx.status === 'error' ? `Critical database timeout at route ${tx.endpoint}` : `High latency spike detected on endpoint ${tx.endpoint}`,
-                type: tx.status,
-                time: tx.timeStr
-            };
-            state.alerts.unshift(alertItem);
-            if (state.alerts.length > 10) {
-                state.alerts.pop();
-            }
-
-            if (state.activeTab === 'dashboard') {
-                renderAlertsList();
-            }
-
-            if (!quiet) {
-                showToast(alertItem.message, alertItem.type);
             }
         }
 
@@ -1932,29 +1860,24 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (state.enableCursorWave && points.length > 1) {
-                // Update age of points and delete old ones
                 for (let i = 0; i < points.length; i++) {
                     points[i].age += 1;
                 }
 
-                // Setup line styles
                 ctx.beginPath();
                 ctx.moveTo(points[0].x, points[0].y);
 
                 for (let i = 1; i < points.length - 1; i++) {
-                    // Spline calculation for elegant waving ribbon
                     const xc = (points[i].x + points[i + 1].x) / 2;
                     const yc = (points[i].y + points[i + 1].y) / 2;
                     ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
                 }
 
-                // Styling ribbon glow and thickness gradient
                 const grad = ctx.createLinearGradient(
                     points[0].x, points[0].y, 
                     points[points.length - 1].x, points[points.length - 1].y
                 );
                 
-                // Color stops matching active theme gradients
                 if (state.themeColor === 'purple') {
                     grad.addColorStop(0, 'rgba(147, 51, 234, 0)');
                     grad.addColorStop(0.5, 'rgba(219, 39, 119, 0.45)');
@@ -1975,7 +1898,7 @@
                 ctx.lineJoin = 'round';
                 ctx.stroke();
 
-                // Draw secondary thin inner glowing ribbon with offset for high-tech look
+                // Draw secondary thin inner glowing ribbon
                 ctx.beginPath();
                 ctx.moveTo(points[0].x, points[0].y);
                 for (let i = 1; i < points.length - 1; i++) {
@@ -1994,7 +1917,7 @@
         animateCursorWave();
 
         // -------------------------------------------------------------
-        // 3. CORE RENDERING ENGINE
+        // 3. CORE RENDERING ENGINE & API SYNCING
         // -------------------------------------------------------------
         
         // Tab Router Handler
@@ -2048,30 +1971,43 @@
             tabPanels.forEach(p => p.classList.remove('active'));
             document.getElementById(`tab-${tabId}`).classList.add('active');
 
-            // Apply titles
             const meta = TAB_METADATA[tabId];
             pageHeading.textContent = meta.title;
             pageSubtitle.textContent = meta.subtitle;
             topActionButton.textContent = meta.actionText;
 
-            // Trigger specific tab renders
             if (tabId === 'dashboard') {
-                renderDashboardMetrics();
-                renderAlertsList();
-                drawInteractiveSvgChart();
+                syncDashboardData();
             } else if (tabId === 'database') {
-                renderTransactionsTable();
+                syncDatabaseTable();
             } else if (tabId === 'analytics') {
                 drawAnalyticsBarChart();
             }
         }
 
-        // Render dashboard values dynamically with smooth progressive value increments
-        function renderDashboardMetrics() {
-            const cpu = state.cpuHistory[state.cpuHistory.length - 1];
-            const ram = state.ramHistory[state.ramHistory.length - 1];
-            const net = state.netHistory[state.netHistory.length - 1];
+        // Sync and render CPU, RAM, Network from real Express APIs
+        function syncDashboardData() {
+            fetch('/api/v1/metrics')
+                .then(res => res.json())
+                .then(data => {
+                    state.cpuHistory = data.cpuHistory;
+                    state.ramHistory = data.ramHistory;
+                    state.netHistory = data.netHistory;
+                    
+                    renderDashboardMetrics(data.cpu, data.ram, data.net);
+                    drawInteractiveSvgChart();
+                })
+                .catch(e => console.error("Metrics sync failed."));
 
+            fetch('/api/v1/alerts')
+                .then(res => res.json())
+                .then(data => {
+                    state.alerts = data;
+                    renderAlertsList();
+                });
+        }
+
+        function renderDashboardMetrics(cpu, ram, net) {
             document.getElementById('val-cpu').textContent = `${cpu.toFixed(1)}%`;
             document.getElementById('bar-cpu').style.width = `${cpu}%`;
 
@@ -2112,7 +2048,7 @@
             `).join('');
         }
 
-        // Custom Interactive line chart mapping function
+        // Draw dynamic inline SVG chart with custom spline Bezier math
         function drawInteractiveSvgChart() {
             const svg = document.getElementById('svg-chart');
             if (!svg) return;
@@ -2135,7 +2071,6 @@
 
             for (let i = 0; i < maxPoints; i++) {
                 const x = xOffset + i * stepX;
-                // Scale values
                 const yCpu = yOffset - (state.cpuHistory[i] / 100) * height;
                 const yRam = yOffset - (state.ramHistory[i] / 16) * height;
 
@@ -2143,7 +2078,6 @@
                 ramPoints.push({x, y: yRam});
             }
 
-            // Create Path strings using beautiful Bezier cubics
             function createSplinePath(pointsArray) {
                 let d = `M ${pointsArray[0].x} ${pointsArray[0].y}`;
                 for (let i = 0; i < pointsArray.length - 1; i++) {
@@ -2162,23 +2096,17 @@
             pathCpu.setAttribute('d', cpuD);
             pathRam.setAttribute('d', ramD);
 
-            // Area fillers
             areaCpu.setAttribute('d', `${cpuD} L 770 260 L 50 260 Z`);
             areaRam.setAttribute('d', `${ramD} L 770 260 L 50 260 Z`);
 
-            // Interactive Node highlights
             const nodeCpu = document.getElementById('node-cpu');
             const nodeRam = document.getElementById('node-ram');
 
-            // Overlay hovering listener
             svg.onmousemove = function(e) {
                 const rect = svg.getBoundingClientRect();
                 const clientX = e.clientX - rect.left;
-                
-                // Translate svg coordinates
                 const svgX = (clientX / rect.width) * 800;
                 
-                // Find closest data index
                 let bestIdx = 0;
                 let minDist = 9999;
                 for (let i = 0; i < maxPoints; i++) {
@@ -2190,7 +2118,6 @@
                     }
                 }
 
-                // Map highlights
                 if (bestIdx >= 0 && bestIdx < maxPoints) {
                     const cNode = cpuPoints[bestIdx];
                     const rNode = ramPoints[bestIdx];
@@ -2214,6 +2141,15 @@
         // Render Tab 2 Database Ledger table
         let currentFilter = 'all';
         let searchQuery = '';
+
+        function syncDatabaseTable() {
+            fetch('/api/v1/transactions')
+                .then(res => res.json())
+                .then(data => {
+                    state.transactions = data;
+                    renderTransactionsTable();
+                });
+        }
 
         function renderTransactionsTable() {
             const tbody = document.getElementById('database-table-body');
@@ -2279,13 +2215,18 @@
             });
         });
 
-        // 3D Matrix / Bar chart analytics builder (Tab 3)
+        // SVG Bar chart builder (Tab 3)
         function drawAnalyticsBarChart() {
             const svg = document.getElementById('analytics-bar-chart');
             if (!svg) return;
 
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-            const requests = [1420, 1850, 2100, 1750, 2482, 980, 1150];
+            
+            // Map analytics based on live server transactions count
+            const queriesCount = Math.max(850, state.transactions.length * 60 + 120);
+            document.getElementById('analytics-total-queries').textContent = queriesCount.toLocaleString();
+
+            const requests = [queriesCount - 450, queriesCount - 200, queriesCount + 300, queriesCount - 150, queriesCount, Math.floor(queriesCount/2), Math.floor(queriesCount/1.8)];
             const maxVal = Math.max(...requests);
 
             const width = 720;
@@ -2295,28 +2236,26 @@
             const stepX = width / days.length;
 
             let html = `
-                <!-- Grid vertical ticks -->
                 <line x1="50" y1="280" x2="770" y2="280" style="stroke: rgba(255,255,255,0.1); stroke-width:1;" />
                 <line x1="50" y1="40" x2="770" y2="40" style="stroke: rgba(255,255,255,0.02); stroke-width:1;" />
-                <text x="25" y="44" class="chart-axis-text">3k</text>
-                <text x="25" y="164" class="chart-axis-text">1.5k</text>
+                <text x="25" y="44" class="chart-axis-text">${(maxVal * 1.2).toFixed(0)}</text>
+                <text x="25" y="164" class="chart-axis-text">${(maxVal * 0.6).toFixed(0)}</text>
                 <text x="25" y="284" class="chart-axis-text">0</text>
             `;
 
             for (let i = 0; i < days.length; i++) {
                 const x = xOffset + i * stepX + (stepX / 4);
                 const barWidth = stepX / 2;
-                const barHeight = (requests[i] / 3000) * height;
+                const barHeight = (requests[i] / (maxVal * 1.2)) * height;
                 const y = yOffset - barHeight;
 
                 html += `
-                    <!-- Sleek glowing linear gradient bar -->
-                    <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="6" fill="url(#cpu-gradient)" opacity="0.8" style="transition: all 0.3s ease;">
+                    <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="6" fill="url(#cpu-gradient)" opacity="0.8">
                         <animate attributeName="height" from="0" to="${barHeight}" dur="1s" cubic-bezier(0.16, 1, 0.3, 1) fill="freeze" />
                         <animate attributeName="y" from="${yOffset}" to="${y}" dur="1s" cubic-bezier(0.16, 1, 0.3, 1) fill="freeze" />
                     </rect>
                     <text x="${x + barWidth/2}" y="304" fill="var(--text-muted)" font-size="11" font-family="var(--font-main)" text-anchor="middle">${days[i]}</text>
-                    <text x="${x + barWidth/2}" y="${y - 8}" fill="var(--accent)" font-size="10" font-family="var(--font-mono)" text-anchor="middle" font-weight="500">${requests[i]}</text>
+                    <text x="${x + barWidth/2}" y="${y - 8}" fill="var(--accent)" font-size="10" font-family="var(--font-mono)" text-anchor="middle" font-weight="500">${requests[i].toFixed(0)}</text>
                 `;
             }
 
@@ -2324,53 +2263,10 @@
         }
 
         // -------------------------------------------------------------
-        // 4. MOCK TERMINAL SCRIPT ENGINE
+        // 4. MOCK TERMINAL SCRIPT ENGINE (Upgraded to Node Backend)
         // -------------------------------------------------------------
         const termInput = document.getElementById('term-command-input');
         const termBody = document.getElementById('term-body');
-
-        const TERM_COMMANDS = {
-            help: `Available Quantum core command pipelines:
-  - <strong style="color:var(--accent)">sysinfo</strong>: Display container metrics, active core engines, and runtime parameters.
-  - <strong style="color:var(--accent)">db_stats</strong>: Dump memory details on JSON ledger tables.
-  - <strong style="color:var(--accent)">trigger_error</strong>: Artificially inject error sequences.
-  - <strong style="color:var(--accent)">clear</strong>: Flush screen arrays.
-  - <strong style="color:var(--accent)">inject_spark [qty]</strong>: Mass-execute database transfers.`,
-            sysinfo: () => {
-                const cpu = state.cpuHistory[state.cpuHistory.length - 1].toFixed(1);
-                const ram = state.ramHistory[state.ramHistory.length - 1].toFixed(1);
-                return `CONTAINER RUNTIME PARAMS:
-  SYSTEM CORE    : Quantum M-80 Core Server
-  CPU ALLOC      : ${cpu}% Engine Util
-  RAM COMMITTED  : ${ram} GB / 16.0 GB Core Pool
-  NETWORK SYNC   : LINK SECURE (TUNNEL v6)
-  UPTIME         : ${Math.floor(performance.now()/1000)}s Core Cycle`;
-            },
-            db_stats: () => {
-                const errCount = state.transactions.filter(t => t.status === 'error').length;
-                const warnCount = state.transactions.filter(t => t.status === 'warning').length;
-                return `LEDGER DUMP REPORT:
-  TOTAL ENTRIES  : ${state.transactions.length} In-Memory
-  CACHE BUFFER   : Active Flush enabled
-  FAULT RATIO    : ${state.faultRate * 100}% Injected
-  ERROR COMMITS  : ${errCount} records flagged
-  WARN ALERTS    : ${warnCount} records flagged`;
-            },
-            trigger_error: () => {
-                const tx = {
-                    id: 'TX-FAIL-' + Math.floor(100000 + Math.random()*900000),
-                    endpoint: '/api/v1/quantum/collapse',
-                    latency: 582,
-                    payload: '12.4 KB',
-                    ip: '127.0.0.1',
-                    status: 'error',
-                    timeStr: new Date().toLocaleTimeString()
-                };
-                state.transactions.unshift(tx);
-                injectAlert(tx, false);
-                return `SYSTEM ERROR INJECTED: Collapsing quantum entanglements at ${tx.endpoint}. Log written to local database registry under ID ${tx.id}.`;
-            }
-        };
 
         termInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
@@ -2382,7 +2278,6 @@
             }
         });
 
-        // Trigger Preset commands via click elements
         document.querySelectorAll('.term-preset-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const cmd = btn.getAttribute('data-cmd');
@@ -2391,7 +2286,6 @@
         });
 
         function executeTerminalCommand(cmdText) {
-            // Write input line into history
             const userLine = document.createElement('div');
             userLine.className = 'terminal-line';
             userLine.innerHTML = `<span class="term-prompt">sec-m@backend:~$</span> <span style="color:white;">${cmdText}</span>`;
@@ -2400,35 +2294,39 @@
             const parts = cmdText.split(' ');
             const cmd = parts[0].toLowerCase();
 
-            let response = '';
-
             if (cmd === 'clear') {
-                // Clear all terminal lines except prompt
                 const lines = termBody.querySelectorAll('.terminal-line');
                 lines.forEach(l => l.remove());
                 return;
-            } else if (cmd === 'inject_spark') {
-                const qty = parseInt(parts[1]) || 5;
-                for (let i = 0; i < qty; i++) {
-                    injectMockTransaction(true);
-                }
-                response = `SPARK PIPELINE: Injected ${qty} custom transaction objects into ledger pools.`;
-                showToast(response, 'success');
-            } else if (TERM_COMMANDS[cmd]) {
-                const val = TERM_COMMANDS[cmd];
-                response = typeof val === 'function' ? val() : val;
-            } else {
-                response = `bash: command not found: ${cmd}. Type 'help' to review active container options.`;
             }
 
-            // Write response line
-            const resLine = document.createElement('div');
-            resLine.className = 'terminal-line';
-            resLine.innerHTML = response.replace(/\n/g, '<br>');
-            termBody.insertBefore(resLine, termBody.lastElementChild);
+            // Post command query to the Node.js backend
+            fetch('/api/v1/terminal', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ command: cmdText })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const resLine = document.createElement('div');
+                resLine.className = 'terminal-line';
+                resLine.innerHTML = data.output.replace(/\n/g, '<br>');
+                termBody.insertBefore(resLine, termBody.lastElementChild);
+                termBody.scrollTop = termBody.scrollHeight;
 
-            // Auto Scroll to bottom
-            termBody.scrollTop = termBody.scrollHeight;
+                if (cmd === 'inject_spark') {
+                    showToast("Spark operations executed successfully.", "success");
+                    if (state.activeTab === 'database') syncDatabaseTable();
+                } else if (cmd === 'trigger_error') {
+                    showToast("System error simulated on container.", "error");
+                }
+            })
+            .catch(err => {
+                const resLine = document.createElement('div');
+                resLine.className = 'terminal-line';
+                resLine.innerHTML = `<span style="color:var(--neon-red)">Error linking with Core Service container backend API.</span>`;
+                termBody.insertBefore(resLine, termBody.lastElementChild);
+            });
         }
 
         // -------------------------------------------------------------
@@ -2457,7 +2355,7 @@
             state.enableCursorWave = e.target.checked;
             saveSettings();
             if (!state.enableCursorWave) {
-                points = []; // flush points
+                points = [];
             }
             showToast(`Interactive cursor ribbon waving: ${state.enableCursorWave ? 'Enabled' : 'Disabled'}.`, 'success');
         });
@@ -2476,39 +2374,38 @@
         let backendIntervalId = null;
 
         function runBackendLoop() {
-            // Heartbeat update of system metrics to simulate server behavior
             if (state.syncEnabled) {
-                // Generate next metric entry based on previous to look organic
-                const prevCpu = state.cpuHistory[state.cpuHistory.length - 1];
-                const cpuDelta = (Math.random() - 0.48) * 15; // wave slightly upward
-                const nextCpu = Math.max(15, Math.min(prevCpu + cpuDelta, 98));
+                // Fetch dynamic metrics from backend Node server
+                fetch('/api/v1/metrics')
+                    .then(res => res.json())
+                    .then(data => {
+                        state.cpuHistory = data.cpuHistory;
+                        state.ramHistory = data.ramHistory;
+                        state.netHistory = data.netHistory;
 
-                const prevRam = state.ramHistory[state.ramHistory.length - 1];
-                const ramDelta = (Math.random() - 0.5) * 0.4;
-                const nextRam = Math.max(4.2, Math.min(prevRam + ramDelta, 14.8));
+                        if (state.activeTab === 'dashboard') {
+                            renderDashboardMetrics(data.cpu, data.ram, data.net);
+                            drawInteractiveSvgChart();
+                        }
+                    })
+                    .catch(e => console.warn("Failed to fetch server metrics."));
 
-                const prevNet = state.netHistory[state.netHistory.length - 1];
-                const netDelta = (Math.random() - 0.45) * 0.8;
-                const nextNet = Math.max(0.2, Math.min(prevNet + netDelta, 8.5));
+                // Fetch latest alerts
+                fetch('/api/v1/alerts')
+                    .then(res => res.json())
+                    .then(data => {
+                        const previousAlertsCount = state.alerts.length;
+                        state.alerts = data;
+                        
+                        if (state.activeTab === 'dashboard') {
+                            renderAlertsList();
+                        }
 
-                state.cpuHistory.push(nextCpu);
-                state.ramHistory.push(nextRam);
-                state.netHistory.push(nextNet);
-
-                if (state.cpuHistory.length > 20) {
-                    state.cpuHistory.shift();
-                    state.ramHistory.shift();
-                    state.netHistory.shift();
-                }
-
-                // Inject database entries dynamically
-                injectMockTransaction(false);
-
-                // Update UI active views
-                if (state.activeTab === 'dashboard') {
-                    renderDashboardMetrics();
-                    drawInteractiveSvgChart();
-                }
+                        // Trigger visual alert toast if a new alert was registered on the server
+                        if (data.length > previousAlertsCount && previousAlertsCount > 0) {
+                            showToast(data[0].message, data[0].type);
+                        }
+                    });
             }
         }
 
@@ -2519,7 +2416,6 @@
             backendIntervalId = setInterval(runBackendLoop, state.syncIntervalMs);
         }
 
-        // Live Header Timer Clock
         function runTimerClock() {
             setInterval(() => {
                 const now = new Date();
@@ -2527,14 +2423,12 @@
             }, 1000);
         }
 
-        // Refreshes the state manually on button click
+        // Manual refresh button hook
         document.getElementById('btn-sync').addEventListener('click', () => {
-            injectMockTransaction(false);
             if (state.activeTab === 'dashboard') {
-                renderDashboardMetrics();
-                drawInteractiveSvgChart();
+                syncDashboardData();
             } else if (state.activeTab === 'database') {
-                renderTransactionsTable();
+                syncDatabaseTable();
             }
             showToast("Manual core check performed. Synced registry.", "success");
         });
@@ -2552,7 +2446,6 @@
             } else if (state.activeTab === 'terminal') {
                 executeTerminalCommand("sysinfo");
             } else if (state.activeTab === 'settings') {
-                // Reset settings
                 localStorage.removeItem('sec_m_config');
                 location.reload();
             }
@@ -2560,15 +2453,23 @@
 
         // Dashboard Clear Alerts button
         document.getElementById('btn-clear-alerts').addEventListener('click', () => {
-            state.alerts = [];
-            renderAlertsList();
-            showToast("Alerts log flushed successfully.", "success");
+            fetch('/api/v1/alerts', { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    state.alerts = [];
+                    renderAlertsList();
+                    showToast(data.message, "success");
+                });
         });
 
-        // Add Record button manual injection
+        // Database manual inject record
         document.getElementById('btn-add-record').addEventListener('click', () => {
-            injectMockTransaction(false);
-            showToast("Injected dynamic system commit sequence.", "success");
+            fetch('/api/v1/transactions', { method: 'POST' })
+                .then(res => res.json())
+                .then(tx => {
+                    showToast(`Injected dynamic system commit sequence: ${tx.id}`, tx.status);
+                    syncDatabaseTable();
+                });
         });
 
         // Toast notifications logic
@@ -2595,12 +2496,10 @@
 
             toastBin.appendChild(toast);
             
-            // Trigger animation frame transition
             setTimeout(() => {
                 toast.classList.add('show');
             }, 50);
 
-            // Auto destroy
             setTimeout(() => {
                 toast.classList.remove('show');
                 setTimeout(() => {
@@ -2611,10 +2510,7 @@
 
         // Initialize App Engine
         loadSettings();
-        generateInitialTransactions();
-        renderDashboardMetrics();
-        renderAlertsList();
-        drawInteractiveSvgChart();
+        syncDashboardData();
         resetBackendLoop();
         runTimerClock();
 
