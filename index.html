@@ -1,0 +1,2623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section M | Core Command Hub</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS variables for professional dark-mode HSL color palette */
+        :root {
+            --bg-color: hsl(240, 25%, 5%);
+            --sidebar-color: hsla(240, 25%, 8%, 0.7);
+            --card-color: hsla(240, 20%, 12%, 0.45);
+            --card-border: rgba(255, 255, 255, 0.07);
+            
+            --primary: hsl(265, 90%, 65%);
+            --primary-glow: hsla(265, 90%, 65%, 0.35);
+            --secondary: hsl(325, 90%, 60%);
+            --secondary-glow: hsla(325, 90%, 60%, 0.35);
+            --accent: hsl(185, 95%, 48%);
+            --accent-glow: hsla(185, 95%, 48%, 0.35);
+            
+            --text-main: hsl(0, 0%, 94%);
+            --text-muted: hsl(240, 10%, 70%);
+            --text-dim: hsl(240, 8%, 45%);
+            
+            --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --neon-blue: hsl(200, 100%, 55%);
+            --neon-green: hsl(140, 85%, 50%);
+            --neon-red: hsl(355, 90%, 60%);
+            --neon-yellow: hsl(45, 90%, 55%);
+        }
+
+        /* Base resets */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            overflow-x: hidden;
+            height: 100vh;
+            display: flex;
+            position: relative;
+        }
+
+        /* Background grid & radial gradient overlay */
+        .bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background-image: 
+                radial-gradient(circle at 10% 20%, hsla(265, 80%, 12%, 0.25) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, hsla(185, 80%, 10%, 0.25) 0%, transparent 40%),
+                linear-gradient(rgba(255,255,255,0.01) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.01) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+        }
+
+        /* Cursor canvas */
+        #cursor-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Application Container */
+        .app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Custom Sidebar with Glassmorphic design */
+        aside.sidebar {
+            width: 280px;
+            background-color: var(--sidebar-color);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 2.5rem 1.5rem;
+            position: relative;
+            backdrop-filter: blur(25px);
+            z-index: 10;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3.5rem;
+        }
+
+        .brand-logo {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px var(--primary-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .brand-logo::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+            left: -100%;
+            transition: 0.5s;
+        }
+
+        .sidebar-brand:hover .brand-logo::after {
+            left: 100%;
+            transition: 0.7s ease-in-out;
+        }
+
+        .brand-logo svg {
+            width: 22px;
+            height: 22px;
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+
+        .brand-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(to right, var(--text-main), hsl(240, 10%, 90%));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent);
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* Sidebar Navigation Menu */
+        nav.nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .nav-item:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.03);
+            padding-left: 22px;
+        }
+
+        .nav-item:hover svg {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .nav-item.active {
+            color: #fff;
+            background: linear-gradient(90deg, rgba(147, 51, 234, 0.15) 0%, rgba(219, 39, 119, 0.03) 100%);
+            border: 1px solid rgba(147, 51, 234, 0.2);
+            box-shadow: inset 0 0 12px rgba(147, 51, 234, 0.05);
+            padding-left: 20px;
+        }
+
+        .nav-item.active::before {
+            opacity: 1;
+        }
+
+        .nav-item.active svg {
+            color: var(--secondary);
+            filter: drop-shadow(0 0 4px var(--secondary-glow));
+        }
+
+        /* Sidebar Footer / Profile Info */
+        .sidebar-footer {
+            border-top: 1px solid var(--card-border);
+            padding-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .profile-pic {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--accent), var(--primary));
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+
+        .profile-img-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .profile-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .profile-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Workspace Panel */
+        main.main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Header design */
+        header.top-header {
+            height: 90px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 3rem;
+            background-color: rgba(24, 24, 37, 0.4);
+            backdrop-filter: blur(15px);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-title-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .pulse-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: pulse-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes pulse-ping {
+            0% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            }
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+            }
+            100% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        .header-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Custom Interactive Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid transparent;
+            font-family: var(--font-main);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.5), 0 0 10px var(--secondary-glow);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .btn-accent {
+            background: rgba(6, 182, 212, 0.1);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            color: var(--accent);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.05);
+        }
+
+        .btn-accent:hover {
+            background: var(--accent);
+            color: var(--bg-color);
+            box-shadow: 0 0 15px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        /* Header Metrics badge */
+        .system-time-badge {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            padding: 8px 14px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        .system-time-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Content Container with Animation and padding */
+        .content-body {
+            padding: 3rem;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        /* Tab panels container */
+        .tab-panel {
+            display: none;
+            flex-direction: column;
+            gap: 30px;
+            animation: tab-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        @keyframes tab-enter {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Grid layout for Dashboard (Tab 1) */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+        }
+
+        /* Premium Glass Card Design */
+        .glass-card {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+        }
+
+        .glass-card.highlight::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover .card-icon {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--accent);
+            border-color: rgba(6, 182, 212, 0.2);
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
+        }
+
+        .card-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .card-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            margin-top: 6px;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, white 60%, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-trend {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+
+        .trend-up {
+            color: var(--neon-green);
+        }
+
+        .trend-down {
+            color: var(--neon-red);
+        }
+
+        .trend-up svg, .trend-down svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Progress bars */
+        .progress-container {
+            margin-top: 12px;
+            width: 100%;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            width: 0%;
+            transition: width 1s cubic-bezier(0.1, 0.8, 0.25, 1);
+            position: relative;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 6px;
+            background: white;
+            filter: blur(2px);
+            opacity: 0.8;
+        }
+
+        /* Graph Card section (Tab 1 & 3) */
+        .chart-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1100px) {
+            .chart-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            justify-content: flex-end;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Interactive custom SVG Line Chart */
+        #svg-chart {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+
+        .chart-path-cpu {
+            fill: none;
+            stroke: url(#cpu-gradient);
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 4px 10px rgba(168, 85, 247, 0.3));
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000;
+            animation: drawPath 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .chart-path-ram {
+            fill: none;
+            stroke: url(#ram-gradient);
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 4px 10px rgba(6, 182, 212, 0.3));
+            stroke-dasharray: 2000;
+            stroke-dashoffset: 2000;
+            animation: drawPath 3s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s forwards;
+        }
+
+        .chart-area-cpu {
+            fill: url(#cpu-area-gradient);
+            opacity: 0.15;
+            transition: all 0.5s ease;
+        }
+
+        .chart-area-ram {
+            fill: url(#ram-area-gradient);
+            opacity: 0.12;
+            transition: all 0.5s ease;
+        }
+
+        @keyframes drawPath {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .chart-grid-line {
+            stroke: rgba(255, 255, 255, 0.03);
+            stroke-width: 1;
+        }
+
+        .chart-axis-text {
+            fill: var(--text-dim);
+            font-size: 10px;
+            font-family: var(--font-mono);
+        }
+
+        .chart-hover-node {
+            fill: white;
+            stroke-width: 3;
+            r: 5;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .chart-node-cpu {
+            stroke: var(--primary);
+            filter: drop-shadow(0 0 6px var(--primary));
+        }
+
+        .chart-node-ram {
+            stroke: var(--accent);
+            filter: drop-shadow(0 0 6px var(--accent));
+        }
+
+        /* Database Feed (Tab 2) styling */
+        .table-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            padding: 10px 15px 10px 40px;
+            border-radius: 10px;
+            color: white;
+            font-family: var(--font-main);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-wrapper input:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+        }
+
+        .search-wrapper svg {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn.active {
+            background: rgba(255, 255, 255, 0.06);
+            color: white;
+            font-weight: 500;
+        }
+
+        /* Database Table */
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .custom-table th {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--card-border);
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .custom-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 0.9rem;
+            color: var(--text-main);
+            transition: background 0.2s ease;
+        }
+
+        .custom-table tr {
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .custom-table tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+            color: white;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-status.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--neon-green);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .badge-status.warning {
+            background: rgba(234, 179, 8, 0.1);
+            color: var(--neon-yellow);
+            border: 1px solid rgba(234, 179, 8, 0.2);
+        }
+
+        .badge-status.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--neon-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .badge-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        /* Code/Mono display inside table */
+        .text-code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+
+        /* Mock Terminal Styling (Tab 4) */
+        .terminal-wrapper {
+            background: hsl(240, 25%, 3%);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 500px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .terminal-header {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid var(--card-border);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background-color: var(--neon-red); }
+        .terminal-dot.yellow { background-color: var(--neon-yellow); }
+        .terminal-dot.green { background-color: var(--neon-green); }
+
+        .terminal-title {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .terminal-body {
+            padding: 24px;
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: hsl(120, 85%, 65%);
+        }
+
+        .terminal-line {
+            line-height: 1.5;
+            white-space: pre-wrap;
+            animation: line-fade 0.3s ease-out forwards;
+        }
+
+        @keyframes line-fade {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .term-input-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent);
+            margin-top: auto;
+        }
+
+        .term-prompt {
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .term-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: white;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            flex-grow: 1;
+            caret-color: var(--accent);
+        }
+
+        .terminal-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px;
+            border-top: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .term-preset-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.2s ease;
+        }
+
+        .term-preset-btn:hover {
+            border-color: var(--accent);
+            color: white;
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        /* Settings Tab (Tab 5) UI Elements */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 850px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .settings-label {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: white;
+        }
+
+        .settings-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Custom Toggles */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--card-border);
+            transition: .4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+            border-color: rgba(147, 51, 234, 0.3);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Select input dropdown customization */
+        .custom-select {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--card-border);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: var(--font-main);
+            outline: none;
+            cursor: pointer;
+            transition: border 0.3s ease;
+        }
+
+        .custom-select:focus {
+            border-color: var(--accent);
+        }
+
+        /* Info boxes */
+        .info-box {
+            background: rgba(6, 182, 212, 0.05);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            color: var(--accent);
+            font-size: 0.85rem;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            line-height: 1.4;
+        }
+
+        .info-box svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.07);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Toast system */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(20, 20, 30, 0.85);
+            border: 1px solid var(--primary);
+            border-radius: 12px;
+            padding: 14px 20px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--primary-glow);
+            backdrop-filter: blur(20px);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateX(120%);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Wave Grid Background -->
+    <div class="bg-overlay"></div>
+
+    <!-- Mouse Waving Canvas Trail -->
+    <canvas id="cursor-canvas"></canvas>
+
+    <!-- App Container -->
+    <div class="app-container">
+
+        <!-- Sidebar Section -->
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <div class="sidebar-brand">
+                    <div class="brand-logo">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="brand-title">SECTION M</span>
+                        <span class="brand-subtitle">Quantum Core</span>
+                    </div>
+                </div>
+
+                <nav class="nav-menu">
+                    <a class="nav-item active" data-tab="dashboard">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="9"></rect>
+                            <rect x="14" y="3" width="7" height="5"></rect>
+                            <rect x="14" y="12" width="7" height="9"></rect>
+                            <rect x="3" y="16" width="7" height="5"></rect>
+                        </svg>
+                        Dashboard
+                    </a>
+                    <a class="nav-item" data-tab="database">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                            <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
+                        </svg>
+                        Backend Database
+                    </a>
+                    <a class="nav-item" data-tab="analytics">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="20" x2="18" y2="10"></line>
+                            <line x1="12" y1="20" x2="12" y2="4"></line>
+                            <line x1="6" y1="20" x2="6" y2="14"></line>
+                        </svg>
+                        Core Analytics
+                    </a>
+                    <a class="nav-item" data-tab="terminal">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="4 17 10 11 4 5"></polyline>
+                            <line x1="12" y1="19" x2="20" y2="19"></line>
+                        </svg>
+                        Service Terminal
+                    </a>
+                    <a class="nav-item" data-tab="settings">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        System Settings
+                    </a>
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="profile-pic">
+                    <div class="profile-img-inner">SM</div>
+                </div>
+                <div class="profile-info">
+                    <span class="profile-name">Operator #804</span>
+                    <span class="profile-role">Root Administrator</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Dashboard Area -->
+        <main class="main-content">
+            
+            <!-- Top Header Navbar -->
+            <header class="top-header">
+                <div class="header-left">
+                    <div class="header-title-bar">
+                        <h1 class="header-title" id="page-heading">Dashboard Console</h1>
+                        <span class="pulse-indicator"></span>
+                    </div>
+                    <span class="header-desc" id="page-subtitle">Real-time analytical and database metrics from the local container backend</span>
+                </div>
+                <div class="header-actions">
+                    <div class="system-time-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span id="live-timer">00:00:00 UTC</span>
+                    </div>
+                    <button class="btn btn-outline" id="btn-sync">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;">
+                            <polyline points="23 4 23 10 17 10"></polyline>
+                            <polyline points="1 20 1 14 7 14"></polyline>
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
+                        Refresh State
+                    </button>
+                    <button class="btn btn-primary" id="btn-action">Deploy Spark</button>
+                </div>
+            </header>
+
+            <!-- Scrollable Body Content -->
+            <div class="content-body">
+                
+                <!-- 1. DASHBOARD TAB PANEL -->
+                <div class="tab-panel active" id="tab-dashboard">
+                    <!-- Top stats grid -->
+                    <div class="metrics-grid">
+                        
+                        <!-- CPU Usage -->
+                        <div class="glass-card highlight">
+                            <div class="card-header">
+                                <div class="card-info">
+                                    <span class="card-title">CPU Utilization</span>
+                                    <div class="card-value" id="val-cpu">0.0%</div>
+                                </div>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                                        <rect x="9" y="9" width="6" height="6"></rect>
+                                        <line x1="9" y1="1" x2="9" y2="4"></line>
+                                        <line x1="15" y1="1" x2="15" y2="4"></line>
+                                        <line x1="9" y1="20" x2="9" y2="23"></line>
+                                        <line x1="15" y1="20" x2="15" y2="23"></line>
+                                        <line x1="20" y1="9" x2="23" y2="9"></line>
+                                        <line x1="20" y1="15" x2="23" y2="15"></line>
+                                        <line x1="1" y1="9" x2="4" y2="9"></line>
+                                        <line x1="1" y1="15" x2="4" y2="15"></line>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" id="bar-cpu"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend trend-up">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                                    <polyline points="17 6 23 6 23 12"></polyline>
+                                </svg>
+                                <span>+2.4% vs last cycle</span>
+                            </div>
+                        </div>
+
+                        <!-- Memory (RAM) Usage -->
+                        <div class="glass-card highlight">
+                            <div class="card-header">
+                                <div class="card-info">
+                                    <span class="card-title">Memory Allocation</span>
+                                    <div class="card-value" id="val-ram">0.0 GB</div>
+                                </div>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M6 2v20M18 2v20M6 6h12M6 10h12M6 14h12M6 18h12"></svg>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" id="bar-ram" style="background: linear-gradient(to right, var(--secondary), var(--accent));"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend trend-down">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 18 13.5 8.5 8.5 13.5 1 6"></polyline>
+                                    <polyline points="17 18 23 18 23 12"></polyline>
+                                </svg>
+                                <span>-0.5 GB dynamic release</span>
+                            </div>
+                        </div>
+
+                        <!-- Network Throughput -->
+                        <div class="glass-card highlight">
+                            <div class="card-header">
+                                <div class="card-info">
+                                    <span class="card-title">Network Output</span>
+                                    <div class="card-value" id="val-net">0.0 MB/s</div>
+                                </div>
+                                <div class="card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill" id="bar-net" style="background: linear-gradient(to right, var(--accent), var(--neon-blue));"></div>
+                                </div>
+                            </div>
+                            <div class="card-trend trend-up">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                                    <polyline points="17 6 23 6 23 12"></polyline>
+                                </svg>
+                                <span>+12.8 KB/s network pool</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Chart + Feed Container -->
+                    <div class="chart-row">
+                        <!-- Custom Dynamic SVG Chart Card -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h3 class="card-title" style="font-size:1.1rem; color:white; letter-spacing:0.5px;">Analytical Core Node Waves</h3>
+                                <div class="chart-legend">
+                                    <div class="legend-item">
+                                        <div class="legend-dot" style="background:var(--primary);"></div>
+                                        <span>CPU Engine</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-dot" style="background:var(--accent);"></div>
+                                        <span>Memory Pool</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <svg id="svg-chart" viewBox="0 0 800 300" preserveAspectRatio="none">
+                                    <defs>
+                                        <!-- Gradient Definitions for professional aesthetics -->
+                                        <linearGradient id="cpu-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="var(--primary)" />
+                                            <stop offset="50%" stop-color="var(--secondary)" />
+                                            <stop offset="100%" stop-color="var(--accent)" />
+                                        </linearGradient>
+                                        <linearGradient id="ram-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <stop offset="0%" stop-color="var(--accent)" />
+                                            <stop offset="100%" stop-color="var(--neon-blue)" />
+                                        </linearGradient>
+                                        <linearGradient id="cpu-area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.4" />
+                                            <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0" />
+                                        </linearGradient>
+                                        <linearGradient id="ram-area-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3" />
+                                            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0" />
+                                        </linearGradient>
+                                    </defs>
+                                    
+                                    <!-- Grid lines background -->
+                                    <line x1="50" y1="50" x2="770" y2="50" class="chart-grid-line" />
+                                    <line x1="50" y1="110" x2="770" y2="110" class="chart-grid-line" />
+                                    <line x1="50" y1="170" x2="770" y2="170" class="chart-grid-line" />
+                                    <line x1="50" y1="230" x2="770" y2="230" class="chart-grid-line" />
+                                    <line x1="50" y1="260" x2="770" y2="260" class="chart-grid-line" style="stroke:rgba(255,255,255,0.08);" />
+
+                                    <!-- Chart values axes texts -->
+                                    <text x="25" y="54" class="chart-axis-text">100%</text>
+                                    <text x="25" y="114" class="chart-axis-text">75%</text>
+                                    <text x="25" y="174" class="chart-axis-text">50%</text>
+                                    <text x="25" y="234" class="chart-axis-text">25%</text>
+                                    <text x="25" y="264" class="chart-axis-text">0%</text>
+
+                                    <!-- Dynamic elements mapped dynamically by JavaScript -->
+                                    <path id="path-cpu-area" class="chart-area-cpu" d="M 50 260 L 50 260 L 770 260 Z" />
+                                    <path id="path-ram-area" class="chart-area-ram" d="M 50 260 L 50 260 L 770 260 Z" />
+                                    <path id="path-cpu" class="chart-path-cpu" d="M 50 260" />
+                                    <path id="path-ram" class="chart-path-ram" d="M 50 260" />
+
+                                    <!-- Hover elements -->
+                                    <circle id="node-cpu" class="chart-hover-node chart-node-cpu" />
+                                    <circle id="node-ram" class="chart-hover-node chart-node-ram" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- System Alerts & Logs panel -->
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h3 class="card-title" style="font-size:1.1rem; color:white; letter-spacing:0.5px;">Critical Alerts</h3>
+                                <button class="btn-accent" style="padding:6px 12px; font-size:0.75rem; border-radius:6px;" id="btn-clear-alerts">Clear All</button>
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:12px; max-height:260px; overflow-y:auto;" id="dashboard-alerts-list">
+                                <!-- Rendered dynamically by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. BACKEND DATABASE TAB PANEL -->
+                <div class="tab-panel" id="tab-database">
+                    <div class="glass-card">
+                        <div class="card-header">
+                            <h3 class="card-title" style="font-size:1.2rem; color:white;">Backend Transaction Ledger</h3>
+                            <button class="btn btn-accent" id="btn-add-record">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Inject Record
+                            </button>
+                        </div>
+
+                        <div class="table-controls">
+                            <div class="search-wrapper">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input type="text" id="table-search" placeholder="Search parameters, routes, IPs...">
+                            </div>
+
+                            <div class="filter-tabs">
+                                <button class="filter-btn active" data-filter="all">All</button>
+                                <button class="filter-btn" data-filter="success">Success</button>
+                                <button class="filter-btn" data-filter="warning">Warning</button>
+                                <button class="filter-btn" data-filter="error">Error</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Transaction ID</th>
+                                        <th>Endpoint</th>
+                                        <th>Latency</th>
+                                        <th>Payload Size</th>
+                                        <th>Client IP</th>
+                                        <th>Status</th>
+                                        <th>Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="database-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. ANALYTICS DETAIL TAB PANEL -->
+                <div class="tab-panel" id="tab-analytics">
+                    <div class="glass-card">
+                        <h3 class="card-title" style="font-size:1.2rem; color:white; margin-bottom:20px;">Resource Analytics Grid</h3>
+                        <div class="metrics-grid" style="margin-bottom:30px;">
+                            <div class="glass-card" style="background:rgba(255,255,255,0.01)">
+                                <span class="card-title" style="font-size:0.75rem;">Total Queries Run</span>
+                                <div class="card-value" style="font-size:1.8rem; color:var(--accent);" id="analytics-total-queries">2,482</div>
+                                <span class="card-trend trend-up" style="margin-top:5px;">+82 since startup</span>
+                            </div>
+                            <div class="glass-card" style="background:rgba(255,255,255,0.01)">
+                                <span class="card-title" style="font-size:0.75rem;">Average Latency</span>
+                                <div class="card-value" style="font-size:1.8rem; color:var(--secondary);" id="analytics-avg-latency">42 ms</div>
+                                <span class="card-trend trend-down" style="margin-top:5px;">-4ms optimization gain</span>
+                            </div>
+                            <div class="glass-card" style="background:rgba(255,255,255,0.01)">
+                                <span class="card-title" style="font-size:0.75rem;">Peak CPU Lockout</span>
+                                <div class="card-value" style="font-size:1.8rem; color:var(--primary);" id="analytics-peak-cpu">89.4%</div>
+                                <span class="card-trend trend-up" style="margin-top:5px; color:var(--neon-yellow);">Approaching threshold</span>
+                            </div>
+                        </div>
+
+                        <!-- Bar chart constructed by SVG dynamically -->
+                        <div class="chart-container" style="height:320px;">
+                            <svg id="analytics-bar-chart" viewBox="0 0 800 320" style="width:100%; height:100%; overflow:visible;">
+                                <!-- Plotted via Javascript -->
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. SERVICE TERMINAL TAB PANEL -->
+                <div class="tab-panel" id="tab-terminal">
+                    <div class="terminal-wrapper">
+                        <div class="terminal-header">
+                            <div class="terminal-dots">
+                                <div class="terminal-dot red"></div>
+                                <div class="terminal-dot yellow"></div>
+                                <div class="terminal-dot green"></div>
+                            </div>
+                            <div class="terminal-title">operator@sectionm-core:~</div>
+                            <div style="width:50px;"></div>
+                        </div>
+
+                        <div class="terminal-body" id="term-body">
+                            <div class="terminal-line" style="color:var(--text-muted)">Welcome to Section M Core Interactive Service Terminal.</div>
+                            <div class="terminal-line" style="color:var(--text-muted)">Establish API link with local backend container... Successful.</div>
+                            <div class="terminal-line" style="color:var(--accent)">Type 'help' to list available container backend processes.</div>
+                            
+                            <!-- Input Prompt -->
+                            <div class="term-input-line">
+                                <span class="term-prompt">sec-m@backend:~$</span>
+                                <input type="text" class="term-input" id="term-command-input" autofocus autocomplete="off" spellcheck="false">
+                            </div>
+                        </div>
+
+                        <!-- Preset command triggers for easy interactive demo -->
+                        <div class="terminal-buttons">
+                            <button class="term-preset-btn" data-cmd="help">help</button>
+                            <button class="term-preset-btn" data-cmd="sysinfo">sysinfo</button>
+                            <button class="term-preset-btn" data-cmd="db_stats">db_stats</button>
+                            <button class="term-preset-btn" data-cmd="trigger_error">trigger_error</button>
+                            <button class="term-preset-btn" data-cmd="clear">clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. SYSTEM SETTINGS TAB PANEL -->
+                <div class="tab-panel" id="tab-settings">
+                    <div class="glass-card">
+                        <h3 class="card-title" style="font-size:1.2rem; color:white; margin-bottom:24px;">Core Dashboard Configuration</h3>
+                        
+                        <div class="settings-grid">
+                            <!-- Left Settings group -->
+                            <div class="settings-group">
+                                <h4 style="font-size:1rem; color:var(--accent); font-weight:600; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">Live Feed Controls</h4>
+                                
+                                <div class="settings-row">
+                                    <div class="settings-label-col">
+                                        <span class="settings-label">Live Background Refresh</span>
+                                        <span class="settings-desc">Keep requesting mock backend resources periodically.</span>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="settings-live-sync" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <div class="settings-label-col">
+                                        <span class="settings-label">Refresh Interval</span>
+                                        <span class="settings-desc">Frequency of metric updates from backend container.</span>
+                                    </div>
+                                    <select class="custom-select" id="settings-interval">
+                                        <option value="1000">1.0 sec</option>
+                                        <option value="1500" selected>1.5 sec</option>
+                                        <option value="3000">3.0 sec</option>
+                                        <option value="5000">5.0 sec</option>
+                                    </select>
+                                </div>
+
+                                <div class="settings-row">
+                                    <div class="settings-label-col">
+                                        <span class="settings-label">Simulation Fault Rate</span>
+                                        <span class="settings-desc">Frequency of injected warning/error events in backend logs.</span>
+                                    </div>
+                                    <select class="custom-select" id="settings-fault-rate">
+                                        <option value="0.05">Low (5%)</option>
+                                        <option value="0.15" selected>Medium (15%)</option>
+                                        <option value="0.35">High (35%)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Right Settings group -->
+                            <div class="settings-group">
+                                <h4 style="font-size:1rem; color:var(--secondary); font-weight:600; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:8px;">Visual Aesthetics</h4>
+
+                                <div class="settings-row">
+                                    <div class="settings-label-col">
+                                        <span class="settings-label">Cursor Wave Ribbon Effect</span>
+                                        <span class="settings-desc">Enable dynamic glowing Bezier ribbon wave behind cursor.</span>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" id="settings-cursor-wave" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="settings-row">
+                                    <div class="settings-label-col">
+                                        <span class="settings-label">Primary Color Theme</span>
+                                        <span class="settings-desc">Alter the primary glowing color theme of Section M.</span>
+                                    </div>
+                                    <select class="custom-select" id="settings-theme-color">
+                                        <option value="purple" selected>Royal Violet</option>
+                                        <option value="blue">Cyan Quantum</option>
+                                        <option value="emerald">Hyper Emerald</option>
+                                    </select>
+                                </div>
+
+                                <div class="info-box">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <div>
+                                        <strong>Operator Notice:</strong> Local storage saves system settings automatically. Deleting browser caches resets the backend layout back to the container factory defaults.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notifications Area -->
+    <div class="toast-container" id="toast-bin"></div>
+
+    <!-- MAIN APP JAVASCRIPT -->
+    <script>
+        // -------------------------------------------------------------
+        // 1. STATE & GLOBAL CONFIG
+        // -------------------------------------------------------------
+        const state = {
+            cpuHistory: [32, 38, 42, 35, 48, 55, 60, 52, 49, 58, 62, 65, 54, 52, 59],
+            ramHistory: [6.1, 6.2, 6.4, 6.3, 6.5, 6.6, 6.8, 6.7, 6.5, 6.6, 6.9, 7.1, 7.0, 7.0, 7.2],
+            netHistory: [1.2, 1.5, 2.4, 1.8, 2.9, 3.2, 4.1, 3.5, 2.8, 3.9, 4.5, 5.2, 4.1, 3.8, 4.3],
+            
+            transactions: [],
+            alerts: [],
+            
+            activeTab: 'dashboard',
+            syncEnabled: true,
+            syncIntervalMs: 1500,
+            faultRate: 0.15,
+            enableCursorWave: true,
+            themeColor: 'purple'
+        };
+
+        const ENDPOINTS = [
+            '/api/v1/auth/verify',
+            '/api/v1/queries/spark-submit',
+            '/api/v1/compute/matrix-solve',
+            '/api/v1/quantum/entangle',
+            '/api/v1/database/ledger-sync',
+            '/api/v1/network/tunnel-open',
+            '/api/v1/storage/commit'
+        ];
+
+        const CLIENT_IPS = [
+            '10.240.12.89',
+            '192.168.10.42',
+            '127.0.0.1',
+            '10.12.94.133',
+            '172.16.89.24',
+            '10.240.14.2'
+        ];
+
+        // Load Settings from Local Storage if present
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('sec_m_config');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    state.syncEnabled = parsed.syncEnabled !== undefined ? parsed.syncEnabled : true;
+                    state.syncIntervalMs = parsed.syncIntervalMs || 1500;
+                    state.faultRate = parsed.faultRate || 0.15;
+                    state.enableCursorWave = parsed.enableCursorWave !== undefined ? parsed.enableCursorWave : true;
+                    state.themeColor = parsed.themeColor || 'purple';
+
+                    // Update DOM components for settings to reflect saved values
+                    document.getElementById('settings-live-sync').checked = state.syncEnabled;
+                    document.getElementById('settings-interval').value = state.syncIntervalMs;
+                    document.getElementById('settings-fault-rate').value = state.faultRate;
+                    document.getElementById('settings-cursor-wave').checked = state.enableCursorWave;
+                    document.getElementById('settings-theme-color').value = state.themeColor;
+                    
+                    applyThemeColor(state.themeColor);
+                }
+            } catch (e) {
+                console.error("Error reading storage configs:", e);
+            }
+        }
+
+        function saveSettings() {
+            try {
+                const config = {
+                    syncEnabled: state.syncEnabled,
+                    syncIntervalMs: state.syncIntervalMs,
+                    faultRate: state.faultRate,
+                    enableCursorWave: state.enableCursorWave,
+                    themeColor: state.themeColor
+                };
+                localStorage.setItem('sec_m_config', JSON.stringify(config));
+            } catch (e) {
+                console.error("Error writing configurations:", e);
+            }
+        }
+
+        function applyThemeColor(theme) {
+            const root = document.documentElement;
+            if (theme === 'purple') {
+                root.style.setProperty('--primary', 'hsl(265, 90%, 65%)');
+                root.style.setProperty('--primary-glow', 'hsla(265, 90%, 65%, 0.35)');
+                root.style.setProperty('--secondary', 'hsl(325, 90%, 60%)');
+                root.style.setProperty('--secondary-glow', 'hsla(325, 90%, 60%, 0.35)');
+            } else if (theme === 'blue') {
+                root.style.setProperty('--primary', 'hsl(200, 100%, 55%)');
+                root.style.setProperty('--primary-glow', 'hsla(200, 100%, 55%, 0.35)');
+                root.style.setProperty('--secondary', 'hsl(185, 95%, 48%)');
+                root.style.setProperty('--secondary-glow', 'hsla(185, 95%, 48%, 0.35)');
+            } else if (theme === 'emerald') {
+                root.style.setProperty('--primary', 'hsl(140, 85%, 50%)');
+                root.style.setProperty('--primary-glow', 'hsla(140, 85%, 50%, 0.35)');
+                root.style.setProperty('--secondary', 'hsl(185, 95%, 48%)');
+                root.style.setProperty('--secondary-glow', 'hsla(185, 95%, 48%, 0.35)');
+            }
+        }
+
+        // Initialize transaction database with mock entries
+        function generateInitialTransactions() {
+            for (let i = 0; i < 15; i++) {
+                injectMockTransaction(true); // Quiet insert without showing toasts
+            }
+        }
+
+        // Generate dynamic single transaction
+        function injectMockTransaction(quiet = false) {
+            const id = 'TX-' + Math.floor(100000 + Math.random() * 900000);
+            const endpoint = ENDPOINTS[Math.floor(Math.random() * ENDPOINTS.length)];
+            const latency = Math.floor(12 + Math.random() * 120);
+            
+            // Payload size
+            const payload = (Math.random() * 8.5).toFixed(2) + ' KB';
+            const ip = CLIENT_IPS[Math.floor(Math.random() * CLIENT_IPS.length)];
+            
+            // Status based on fault rate configuration
+            let status = 'success';
+            const roll = Math.random();
+            if (roll < state.faultRate) {
+                status = roll < (state.faultRate / 3) ? 'error' : 'warning';
+            }
+
+            const timestamp = new Date();
+            const timeStr = timestamp.toLocaleTimeString();
+
+            const tx = { id, endpoint, latency, payload, ip, status, timeStr };
+            
+            // Prepend transaction record
+            state.transactions.unshift(tx);
+            if (state.transactions.length > 50) {
+                state.transactions.pop();
+            }
+
+            // Also inject in alerts if error or warning
+            if (status !== 'success') {
+                injectAlert(tx, quiet);
+            }
+
+            if (!quiet && state.activeTab === 'database') {
+                renderTransactionsTable();
+            }
+        }
+
+        // Alert systems
+        function injectAlert(tx, quiet = false) {
+            const alertItem = {
+                id: 'AL-' + Math.floor(1000 + Math.random() * 9000),
+                txId: tx.id,
+                message: tx.status === 'error' ? `Critical database timeout at route ${tx.endpoint}` : `High latency spike detected on endpoint ${tx.endpoint}`,
+                type: tx.status,
+                time: tx.timeStr
+            };
+            state.alerts.unshift(alertItem);
+            if (state.alerts.length > 10) {
+                state.alerts.pop();
+            }
+
+            if (state.activeTab === 'dashboard') {
+                renderAlertsList();
+            }
+
+            if (!quiet) {
+                showToast(alertItem.message, alertItem.type);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // 2. CURSOR WAVING / TRAIL CANVAS JAVASCRIPT
+        // -------------------------------------------------------------
+        const canvas = document.getElementById('cursor-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let mouse = { x: 0, y: 0 };
+        let points = [];
+        const MAX_POINTS = 30;
+
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            
+            if (state.enableCursorWave) {
+                points.push({ x: mouse.x, y: mouse.y, age: 0 });
+                if (points.length > MAX_POINTS) {
+                    points.shift();
+                }
+            }
+        });
+
+        // Animation Loop for Cursor Wave & Ribbons
+        function animateCursorWave() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (state.enableCursorWave && points.length > 1) {
+                // Update age of points and delete old ones
+                for (let i = 0; i < points.length; i++) {
+                    points[i].age += 1;
+                }
+
+                // Setup line styles
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+
+                for (let i = 1; i < points.length - 1; i++) {
+                    // Spline calculation for elegant waving ribbon
+                    const xc = (points[i].x + points[i + 1].x) / 2;
+                    const yc = (points[i].y + points[i + 1].y) / 2;
+                    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                }
+
+                // Styling ribbon glow and thickness gradient
+                const grad = ctx.createLinearGradient(
+                    points[0].x, points[0].y, 
+                    points[points.length - 1].x, points[points.length - 1].y
+                );
+                
+                // Color stops matching active theme gradients
+                if (state.themeColor === 'purple') {
+                    grad.addColorStop(0, 'rgba(147, 51, 234, 0)');
+                    grad.addColorStop(0.5, 'rgba(219, 39, 119, 0.45)');
+                    grad.addColorStop(1, 'rgba(6, 182, 212, 0.85)');
+                } else if (state.themeColor === 'blue') {
+                    grad.addColorStop(0, 'rgba(59, 130, 246, 0)');
+                    grad.addColorStop(0.5, 'rgba(6, 182, 212, 0.45)');
+                    grad.addColorStop(1, 'rgba(34, 211, 238, 0.85)');
+                } else {
+                    grad.addColorStop(0, 'rgba(16, 185, 129, 0)');
+                    grad.addColorStop(0.5, 'rgba(6, 182, 212, 0.45)');
+                    grad.addColorStop(1, 'rgba(52, 211, 153, 0.85)');
+                }
+
+                ctx.strokeStyle = grad;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                // Draw secondary thin inner glowing ribbon with offset for high-tech look
+                ctx.beginPath();
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length - 1; i++) {
+                    const xc = (points[i].x + points[i + 1].x) / 2 + Math.sin(i * 0.5 + Date.now() * 0.005) * 2;
+                    const yc = (points[i].y + points[i + 1].y) / 2 + Math.cos(i * 0.5 + Date.now() * 0.005) * 2;
+                    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                }
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(animateCursorWave);
+        }
+
+        animateCursorWave();
+
+        // -------------------------------------------------------------
+        // 3. CORE RENDERING ENGINE
+        // -------------------------------------------------------------
+        
+        // Tab Router Handler
+        const navItems = document.querySelectorAll('.nav-item');
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        const pageHeading = document.getElementById('page-heading');
+        const pageSubtitle = document.getElementById('page-subtitle');
+        const topActionButton = document.getElementById('btn-action');
+
+        const TAB_METADATA = {
+            dashboard: {
+                title: 'Dashboard Console',
+                subtitle: 'Real-time analytical and database metrics from the local container backend',
+                actionText: 'Deploy Spark'
+            },
+            database: {
+                title: 'Backend Transaction Ledger',
+                subtitle: 'Direct streaming feed of all database commits, system warnings, and requests',
+                actionText: 'Export CSV'
+            },
+            analytics: {
+                title: 'Core Analytics Grid',
+                subtitle: 'Analytical projection charts outlining computing performance bottlenecks',
+                actionText: 'Recalculate Matrices'
+            },
+            terminal: {
+                title: 'Service Command Line',
+                subtitle: 'Send direct command queries to local server configurations and system hooks',
+                actionText: 'Reboot Core'
+            },
+            settings: {
+                title: 'System Adjustments',
+                subtitle: 'Tweak UI theme setups, synchronization time slices, and visual rendering arrays',
+                actionText: 'Factory Reset'
+            }
+        };
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const tab = item.getAttribute('data-tab');
+                switchTab(tab);
+            });
+        });
+
+        function switchTab(tabId) {
+            state.activeTab = tabId;
+            
+            navItems.forEach(n => n.classList.remove('active'));
+            document.querySelector(`.nav-item[data-tab="${tabId}"]`).classList.add('active');
+            
+            tabPanels.forEach(p => p.classList.remove('active'));
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+
+            // Apply titles
+            const meta = TAB_METADATA[tabId];
+            pageHeading.textContent = meta.title;
+            pageSubtitle.textContent = meta.subtitle;
+            topActionButton.textContent = meta.actionText;
+
+            // Trigger specific tab renders
+            if (tabId === 'dashboard') {
+                renderDashboardMetrics();
+                renderAlertsList();
+                drawInteractiveSvgChart();
+            } else if (tabId === 'database') {
+                renderTransactionsTable();
+            } else if (tabId === 'analytics') {
+                drawAnalyticsBarChart();
+            }
+        }
+
+        // Render dashboard values dynamically with smooth progressive value increments
+        function renderDashboardMetrics() {
+            const cpu = state.cpuHistory[state.cpuHistory.length - 1];
+            const ram = state.ramHistory[state.ramHistory.length - 1];
+            const net = state.netHistory[state.netHistory.length - 1];
+
+            document.getElementById('val-cpu').textContent = `${cpu.toFixed(1)}%`;
+            document.getElementById('bar-cpu').style.width = `${cpu}%`;
+
+            document.getElementById('val-ram').textContent = `${ram.toFixed(1)} GB`;
+            document.getElementById('bar-ram').style.width = `${(ram / 16) * 100}%`;
+
+            document.getElementById('val-net').textContent = `${net.toFixed(1)} MB/s`;
+            document.getElementById('bar-net').style.width = `${(net / 10) * 100}%`;
+        }
+
+        // Render Alerts inside Dashboard panel
+        function renderAlertsList() {
+            const container = document.getElementById('dashboard-alerts-list');
+            if (!container) return;
+
+            if (state.alerts.length === 0) {
+                container.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: var(--text-dim); font-size: 0.9rem;">
+                        No system alerts reported in this lifecycle.
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = state.alerts.map(alert => `
+                <div class="glass-card" style="padding: 14px 18px; border-left: 3px solid ${alert.type === 'error' ? 'var(--neon-red)' : 'var(--neon-yellow)'}; background: rgba(255,255,255,0.01);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                        <span style="font-weight: 500; font-size: 0.85rem; color: ${alert.type === 'error' ? 'var(--neon-red)' : 'var(--neon-yellow)'};">${alert.message}</span>
+                        <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim); white-space: nowrap;">${alert.time}</span>
+                    </div>
+                    <div style="margin-top:6px; display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size:0.75rem; color: var(--text-muted);">Ref: <strong class="text-code">${alert.txId}</strong></span>
+                        <span class="badge-status ${alert.type}" style="padding: 2px 6px; font-size: 0.65rem;">
+                            <span class="badge-status-dot"></span>${alert.type}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Custom Interactive line chart mapping function
+        function drawInteractiveSvgChart() {
+            const svg = document.getElementById('svg-chart');
+            if (!svg) return;
+
+            const pathCpu = document.getElementById('path-cpu');
+            const pathRam = document.getElementById('path-ram');
+            const areaCpu = document.getElementById('path-cpu-area');
+            const areaRam = document.getElementById('path-ram-area');
+
+            const width = 720; // 50 to 770
+            const height = 210; // 50 to 260
+            const xOffset = 50;
+            const yOffset = 260;
+
+            const maxPoints = state.cpuHistory.length;
+            const stepX = width / (maxPoints - 1);
+
+            let cpuPoints = [];
+            let ramPoints = [];
+
+            for (let i = 0; i < maxPoints; i++) {
+                const x = xOffset + i * stepX;
+                // Scale values
+                const yCpu = yOffset - (state.cpuHistory[i] / 100) * height;
+                const yRam = yOffset - (state.ramHistory[i] / 16) * height;
+
+                cpuPoints.push({x, y: yCpu});
+                ramPoints.push({x, y: yRam});
+            }
+
+            // Create Path strings using beautiful Bezier cubics
+            function createSplinePath(pointsArray) {
+                let d = `M ${pointsArray[0].x} ${pointsArray[0].y}`;
+                for (let i = 0; i < pointsArray.length - 1; i++) {
+                    const cpX1 = pointsArray[i].x + stepX / 2;
+                    const cpY1 = pointsArray[i].y;
+                    const cpX2 = pointsArray[i + 1].x - stepX / 2;
+                    const cpY2 = pointsArray[i + 1].y;
+                    d += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${pointsArray[i+1].x} ${pointsArray[i+1].y}`;
+                }
+                return d;
+            }
+
+            const cpuD = createSplinePath(cpuPoints);
+            const ramD = createSplinePath(ramPoints);
+
+            pathCpu.setAttribute('d', cpuD);
+            pathRam.setAttribute('d', ramD);
+
+            // Area fillers
+            areaCpu.setAttribute('d', `${cpuD} L 770 260 L 50 260 Z`);
+            areaRam.setAttribute('d', `${ramD} L 770 260 L 50 260 Z`);
+
+            // Interactive Node highlights
+            const nodeCpu = document.getElementById('node-cpu');
+            const nodeRam = document.getElementById('node-ram');
+
+            // Overlay hovering listener
+            svg.onmousemove = function(e) {
+                const rect = svg.getBoundingClientRect();
+                const clientX = e.clientX - rect.left;
+                
+                // Translate svg coordinates
+                const svgX = (clientX / rect.width) * 800;
+                
+                // Find closest data index
+                let bestIdx = 0;
+                let minDist = 9999;
+                for (let i = 0; i < maxPoints; i++) {
+                    const x = xOffset + i * stepX;
+                    const dist = Math.abs(x - svgX);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        bestIdx = i;
+                    }
+                }
+
+                // Map highlights
+                if (bestIdx >= 0 && bestIdx < maxPoints) {
+                    const cNode = cpuPoints[bestIdx];
+                    const rNode = ramPoints[bestIdx];
+
+                    nodeCpu.setAttribute('cx', cNode.x);
+                    nodeCpu.setAttribute('cy', cNode.y);
+                    nodeCpu.style.opacity = 1;
+
+                    nodeRam.setAttribute('cx', rNode.x);
+                    nodeRam.setAttribute('cy', rNode.y);
+                    nodeRam.style.opacity = 1;
+                }
+            };
+
+            svg.onmouseleave = function() {
+                nodeCpu.style.opacity = 0;
+                nodeRam.style.opacity = 0;
+            };
+        }
+
+        // Render Tab 2 Database Ledger table
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        function renderTransactionsTable() {
+            const tbody = document.getElementById('database-table-body');
+            if (!tbody) return;
+
+            const filtered = state.transactions.filter(tx => {
+                const matchesFilter = currentFilter === 'all' || tx.status === currentFilter;
+                const matchesSearch = tx.id.toLowerCase().includes(searchQuery) ||
+                                      tx.endpoint.toLowerCase().includes(searchQuery) ||
+                                      tx.ip.includes(searchQuery);
+                return matchesFilter && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 40px 0;">
+                            No transactions matched search filtering metrics.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(tx => `
+                <tr style="animation: line-fade 0.3s ease-out;">
+                    <td><strong class="text-code">${tx.id}</strong></td>
+                    <td style="font-family: var(--font-mono); font-size: 0.8rem; color: white;">${tx.endpoint}</td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap: 8px;">
+                            <span style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 500;">${tx.latency} ms</span>
+                            <div style="width: 40px; height: 4px; background: rgba(255,255,255,0.03); border-radius: 2px; overflow:hidden;">
+                                <div style="width: ${Math.min((tx.latency / 120) * 100, 100)}%; height: 100%; background: ${tx.latency > 90 ? 'var(--neon-red)' : tx.latency > 60 ? 'var(--neon-yellow)' : 'var(--neon-green)'};"></div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${tx.payload}</td>
+                    <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${tx.ip}</td>
+                    <td>
+                        <span class="badge-status ${tx.status}">
+                            <span class="badge-status-dot"></span>${tx.status}
+                        </span>
+                    </td>
+                    <td style="color: var(--text-dim); font-size: 0.8rem;">${tx.timeStr}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Table search hook
+        document.getElementById('table-search').addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase().trim();
+            renderTransactionsTable();
+        });
+
+        // Table filters tabs hook
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.getAttribute('data-filter');
+                renderTransactionsTable();
+            });
+        });
+
+        // 3D Matrix / Bar chart analytics builder (Tab 3)
+        function drawAnalyticsBarChart() {
+            const svg = document.getElementById('analytics-bar-chart');
+            if (!svg) return;
+
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const requests = [1420, 1850, 2100, 1750, 2482, 980, 1150];
+            const maxVal = Math.max(...requests);
+
+            const width = 720;
+            const height = 240;
+            const xOffset = 50;
+            const yOffset = 280;
+            const stepX = width / days.length;
+
+            let html = `
+                <!-- Grid vertical ticks -->
+                <line x1="50" y1="280" x2="770" y2="280" style="stroke: rgba(255,255,255,0.1); stroke-width:1;" />
+                <line x1="50" y1="40" x2="770" y2="40" style="stroke: rgba(255,255,255,0.02); stroke-width:1;" />
+                <text x="25" y="44" class="chart-axis-text">3k</text>
+                <text x="25" y="164" class="chart-axis-text">1.5k</text>
+                <text x="25" y="284" class="chart-axis-text">0</text>
+            `;
+
+            for (let i = 0; i < days.length; i++) {
+                const x = xOffset + i * stepX + (stepX / 4);
+                const barWidth = stepX / 2;
+                const barHeight = (requests[i] / 3000) * height;
+                const y = yOffset - barHeight;
+
+                html += `
+                    <!-- Sleek glowing linear gradient bar -->
+                    <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" rx="6" fill="url(#cpu-gradient)" opacity="0.8" style="transition: all 0.3s ease;">
+                        <animate attributeName="height" from="0" to="${barHeight}" dur="1s" cubic-bezier(0.16, 1, 0.3, 1) fill="freeze" />
+                        <animate attributeName="y" from="${yOffset}" to="${y}" dur="1s" cubic-bezier(0.16, 1, 0.3, 1) fill="freeze" />
+                    </rect>
+                    <text x="${x + barWidth/2}" y="304" fill="var(--text-muted)" font-size="11" font-family="var(--font-main)" text-anchor="middle">${days[i]}</text>
+                    <text x="${x + barWidth/2}" y="${y - 8}" fill="var(--accent)" font-size="10" font-family="var(--font-mono)" text-anchor="middle" font-weight="500">${requests[i]}</text>
+                `;
+            }
+
+            svg.innerHTML = html;
+        }
+
+        // -------------------------------------------------------------
+        // 4. MOCK TERMINAL SCRIPT ENGINE
+        // -------------------------------------------------------------
+        const termInput = document.getElementById('term-command-input');
+        const termBody = document.getElementById('term-body');
+
+        const TERM_COMMANDS = {
+            help: `Available Quantum core command pipelines:
+  - <strong style="color:var(--accent)">sysinfo</strong>: Display container metrics, active core engines, and runtime parameters.
+  - <strong style="color:var(--accent)">db_stats</strong>: Dump memory details on JSON ledger tables.
+  - <strong style="color:var(--accent)">trigger_error</strong>: Artificially inject error sequences.
+  - <strong style="color:var(--accent)">clear</strong>: Flush screen arrays.
+  - <strong style="color:var(--accent)">inject_spark [qty]</strong>: Mass-execute database transfers.`,
+            sysinfo: () => {
+                const cpu = state.cpuHistory[state.cpuHistory.length - 1].toFixed(1);
+                const ram = state.ramHistory[state.ramHistory.length - 1].toFixed(1);
+                return `CONTAINER RUNTIME PARAMS:
+  SYSTEM CORE    : Quantum M-80 Core Server
+  CPU ALLOC      : ${cpu}% Engine Util
+  RAM COMMITTED  : ${ram} GB / 16.0 GB Core Pool
+  NETWORK SYNC   : LINK SECURE (TUNNEL v6)
+  UPTIME         : ${Math.floor(performance.now()/1000)}s Core Cycle`;
+            },
+            db_stats: () => {
+                const errCount = state.transactions.filter(t => t.status === 'error').length;
+                const warnCount = state.transactions.filter(t => t.status === 'warning').length;
+                return `LEDGER DUMP REPORT:
+  TOTAL ENTRIES  : ${state.transactions.length} In-Memory
+  CACHE BUFFER   : Active Flush enabled
+  FAULT RATIO    : ${state.faultRate * 100}% Injected
+  ERROR COMMITS  : ${errCount} records flagged
+  WARN ALERTS    : ${warnCount} records flagged`;
+            },
+            trigger_error: () => {
+                const tx = {
+                    id: 'TX-FAIL-' + Math.floor(100000 + Math.random()*900000),
+                    endpoint: '/api/v1/quantum/collapse',
+                    latency: 582,
+                    payload: '12.4 KB',
+                    ip: '127.0.0.1',
+                    status: 'error',
+                    timeStr: new Date().toLocaleTimeString()
+                };
+                state.transactions.unshift(tx);
+                injectAlert(tx, false);
+                return `SYSTEM ERROR INJECTED: Collapsing quantum entanglements at ${tx.endpoint}. Log written to local database registry under ID ${tx.id}.`;
+            }
+        };
+
+        termInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const cmdText = termInput.value.trim();
+                termInput.value = '';
+                if (cmdText) {
+                    executeTerminalCommand(cmdText);
+                }
+            }
+        });
+
+        // Trigger Preset commands via click elements
+        document.querySelectorAll('.term-preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cmd = btn.getAttribute('data-cmd');
+                executeTerminalCommand(cmd);
+            });
+        });
+
+        function executeTerminalCommand(cmdText) {
+            // Write input line into history
+            const userLine = document.createElement('div');
+            userLine.className = 'terminal-line';
+            userLine.innerHTML = `<span class="term-prompt">sec-m@backend:~$</span> <span style="color:white;">${cmdText}</span>`;
+            termBody.insertBefore(userLine, termBody.lastElementChild);
+
+            const parts = cmdText.split(' ');
+            const cmd = parts[0].toLowerCase();
+
+            let response = '';
+
+            if (cmd === 'clear') {
+                // Clear all terminal lines except prompt
+                const lines = termBody.querySelectorAll('.terminal-line');
+                lines.forEach(l => l.remove());
+                return;
+            } else if (cmd === 'inject_spark') {
+                const qty = parseInt(parts[1]) || 5;
+                for (let i = 0; i < qty; i++) {
+                    injectMockTransaction(true);
+                }
+                response = `SPARK PIPELINE: Injected ${qty} custom transaction objects into ledger pools.`;
+                showToast(response, 'success');
+            } else if (TERM_COMMANDS[cmd]) {
+                const val = TERM_COMMANDS[cmd];
+                response = typeof val === 'function' ? val() : val;
+            } else {
+                response = `bash: command not found: ${cmd}. Type 'help' to review active container options.`;
+            }
+
+            // Write response line
+            const resLine = document.createElement('div');
+            resLine.className = 'terminal-line';
+            resLine.innerHTML = response.replace(/\n/g, '<br>');
+            termBody.insertBefore(resLine, termBody.lastElementChild);
+
+            // Auto Scroll to bottom
+            termBody.scrollTop = termBody.scrollHeight;
+        }
+
+        // -------------------------------------------------------------
+        // 5. SETTINGS INTERFACE INTEGRATION
+        // -------------------------------------------------------------
+        document.getElementById('settings-live-sync').addEventListener('change', (e) => {
+            state.syncEnabled = e.target.checked;
+            saveSettings();
+            showToast(`Real-time background sync ${state.syncEnabled ? 'Enabled' : 'Disabled'}.`, 'success');
+        });
+
+        document.getElementById('settings-interval').addEventListener('change', (e) => {
+            state.syncIntervalMs = parseInt(e.target.value);
+            saveSettings();
+            resetBackendLoop();
+            showToast(`Synchronization heartbeat set to ${state.syncIntervalMs}ms.`, 'success');
+        });
+
+        document.getElementById('settings-fault-rate').addEventListener('change', (e) => {
+            state.faultRate = parseFloat(e.target.value);
+            saveSettings();
+            showToast(`Backend simulation error inject rate shifted to ${state.faultRate * 100}%.`, 'success');
+        });
+
+        document.getElementById('settings-cursor-wave').addEventListener('change', (e) => {
+            state.enableCursorWave = e.target.checked;
+            saveSettings();
+            if (!state.enableCursorWave) {
+                points = []; // flush points
+            }
+            showToast(`Interactive cursor ribbon waving: ${state.enableCursorWave ? 'Enabled' : 'Disabled'}.`, 'success');
+        });
+
+        document.getElementById('settings-theme-color').addEventListener('change', (e) => {
+            state.themeColor = e.target.value;
+            saveSettings();
+            applyThemeColor(state.themeColor);
+            drawInteractiveSvgChart();
+            showToast(`System aesthetics color theme set to ${state.themeColor}.`, 'success');
+        });
+
+        // -------------------------------------------------------------
+        // 6. DYNAMIC BACKEND LOOP & METRICS ENGINE
+        // -------------------------------------------------------------
+        let backendIntervalId = null;
+
+        function runBackendLoop() {
+            // Heartbeat update of system metrics to simulate server behavior
+            if (state.syncEnabled) {
+                // Generate next metric entry based on previous to look organic
+                const prevCpu = state.cpuHistory[state.cpuHistory.length - 1];
+                const cpuDelta = (Math.random() - 0.48) * 15; // wave slightly upward
+                const nextCpu = Math.max(15, Math.min(prevCpu + cpuDelta, 98));
+
+                const prevRam = state.ramHistory[state.ramHistory.length - 1];
+                const ramDelta = (Math.random() - 0.5) * 0.4;
+                const nextRam = Math.max(4.2, Math.min(prevRam + ramDelta, 14.8));
+
+                const prevNet = state.netHistory[state.netHistory.length - 1];
+                const netDelta = (Math.random() - 0.45) * 0.8;
+                const nextNet = Math.max(0.2, Math.min(prevNet + netDelta, 8.5));
+
+                state.cpuHistory.push(nextCpu);
+                state.ramHistory.push(nextRam);
+                state.netHistory.push(nextNet);
+
+                if (state.cpuHistory.length > 20) {
+                    state.cpuHistory.shift();
+                    state.ramHistory.shift();
+                    state.netHistory.shift();
+                }
+
+                // Inject database entries dynamically
+                injectMockTransaction(false);
+
+                // Update UI active views
+                if (state.activeTab === 'dashboard') {
+                    renderDashboardMetrics();
+                    drawInteractiveSvgChart();
+                }
+            }
+        }
+
+        function resetBackendLoop() {
+            if (backendIntervalId) {
+                clearInterval(backendIntervalId);
+            }
+            backendIntervalId = setInterval(runBackendLoop, state.syncIntervalMs);
+        }
+
+        // Live Header Timer Clock
+        function runTimerClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('live-timer').textContent = now.toLocaleTimeString() + ' UTC';
+            }, 1000);
+        }
+
+        // Refreshes the state manually on button click
+        document.getElementById('btn-sync').addEventListener('click', () => {
+            injectMockTransaction(false);
+            if (state.activeTab === 'dashboard') {
+                renderDashboardMetrics();
+                drawInteractiveSvgChart();
+            } else if (state.activeTab === 'database') {
+                renderTransactionsTable();
+            }
+            showToast("Manual core check performed. Synced registry.", "success");
+        });
+
+        // Dashboard primary button logic
+        document.getElementById('btn-action').addEventListener('click', () => {
+            if (state.activeTab === 'dashboard') {
+                showToast("Spark application matrix submitted to container cluster.", "success");
+                executeTerminalCommand("inject_spark 8");
+            } else if (state.activeTab === 'database') {
+                showToast("Dumping records ledger to local client file...", "success");
+            } else if (state.activeTab === 'analytics') {
+                showToast("Recalculating analytics clusters...", "success");
+                drawAnalyticsBarChart();
+            } else if (state.activeTab === 'terminal') {
+                executeTerminalCommand("sysinfo");
+            } else if (state.activeTab === 'settings') {
+                // Reset settings
+                localStorage.removeItem('sec_m_config');
+                location.reload();
+            }
+        });
+
+        // Dashboard Clear Alerts button
+        document.getElementById('btn-clear-alerts').addEventListener('click', () => {
+            state.alerts = [];
+            renderAlertsList();
+            showToast("Alerts log flushed successfully.", "success");
+        });
+
+        // Add Record button manual injection
+        document.getElementById('btn-add-record').addEventListener('click', () => {
+            injectMockTransaction(false);
+            showToast("Injected dynamic system commit sequence.", "success");
+        });
+
+        // Toast notifications logic
+        function showToast(message, type = 'success') {
+            const toastBin = document.getElementById('toast-bin');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            if (type === 'error') {
+                toast.style.borderColor = 'var(--neon-red)';
+                toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--neon-red)';
+            } else if (type === 'warning') {
+                toast.style.borderColor = 'var(--neon-yellow)';
+                toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5), 0 0 15px var(--neon-yellow)';
+            }
+            
+            toast.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="16" x2="12" y2="12"></line>
+                    <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span>${message}</span>
+            `;
+
+            toastBin.appendChild(toast);
+            
+            // Trigger animation frame transition
+            setTimeout(() => {
+                toast.classList.add('show');
+            }, 50);
+
+            // Auto destroy
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 400);
+            }, 3000);
+        }
+
+        // Initialize App Engine
+        loadSettings();
+        generateInitialTransactions();
+        renderDashboardMetrics();
+        renderAlertsList();
+        drawInteractiveSvgChart();
+        resetBackendLoop();
+        runTimerClock();
+
+    </script>
+</body>
+</html>
