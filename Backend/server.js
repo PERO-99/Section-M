@@ -1,6 +1,8 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -43,6 +45,90 @@ const CLIENT_IPS = [
     '10.240.14.2'
 ];
 
+// -------------------------------------------------------------
+// 1.5 MongoDB SCHEMAS & RESILIENT CONNECTION
+// -------------------------------------------------------------
+const MONGODB_URI = process.env.MONGODB_URI;
+let isMongoConnected = false;
+
+// Transaction Schema & Model
+const transactionSchema = new mongoose.Schema({
+    id: { type: String, required: true, unique: true },
+    endpoint: { type: String, required: true },
+    latency: { type: Number, required: true },
+    payload: { type: String, required: true },
+    ip: { type: String, required: true },
+    status: { type: String, enum: ['success', 'warning', 'error'], required: true },
+    timeStr: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+const Transaction = mongoose.model('Transaction', transactionSchema);
+
+// Alert Schema & Model
+const alertSchema = new mongoose.Schema({
+    id: { type: String, required: true, unique: true },
+    txId: { type: String, required: true },
+    message: { type: String, required: true },
+    type: { type: String, enum: ['success', 'warning', 'error'], required: true },
+    time: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+const Alert = mongoose.model('Alert', alertSchema);
+
+// Function to synchronize state cache with MongoDB
+async function syncFromDatabase() {
+    try {
+        const transactions = await Transaction.find().sort({ createdAt: -1 }).limit(50);
+        const alerts = await Alert.find().sort({ createdAt: -1 }).limit(15);
+        
+        if (transactions.length > 0) {
+            state.transactions = transactions.map(t => ({
+                id: t.id,
+                endpoint: t.endpoint,
+                latency: t.latency,
+                payload: t.payload,
+                ip: t.ip,
+                status: t.status,
+                timeStr: t.timeStr
+            }));
+        }
+        
+        if (alerts.length > 0) {
+            state.alerts = alerts.map(a => ({
+                id: a.id,
+                txId: a.txId,
+                message: a.message,
+                type: a.type,
+                time: a.time
+            }));
+        }
+        
+        console.log(`⚡ [MongoDB] State synchronized. Loaded ${state.transactions.length} transactions and ${state.alerts.length} alerts from Atlas.`);
+    } catch (err) {
+        console.error("❌ [MongoDB] Failed to sync state cache:", err.message);
+    }
+}
+
+// Establish database connection with in-memory fallback
+if (MONGODB_URI) {
+    mongoose.connect(MONGODB_URI)
+        .then(() => {
+            console.log("\n======================================================");
+            console.log("💚 MONGODB CLUSTER CONNECTED SUCCESSFULLY");
+            console.log("======================================================\n");
+            isMongoConnected = true;
+            syncFromDatabase();
+        })
+        .catch(err => {
+            console.error("\n🔴 MongoDB connection failed:", err.message);
+            console.log("⚠️ Running in IN-MEMORY FALLBACK mode.\n");
+        });
+} else {
+    console.log("\n⚠️ MONGODB_URI is not set in environment variables.");
+    console.log("⚠️ Running in IN-MEMORY FALLBACK mode.\n");
+}
+
+
 // Helper to inject a mock transaction
 function injectMockTransaction(quiet = false) {
     const id = 'TX-' + Math.floor(100000 + Math.random() * 900000);
@@ -67,8 +153,9 @@ function injectMockTransaction(quiet = false) {
         state.transactions.pop();
     }
 
+    let alertItem = null;
     if (status !== 'success') {
-        const alertItem = {
+        alertItem = {
             id: 'AL-' + Math.floor(1000 + Math.random() * 9000),
             txId: tx.id,
             message: tx.status === 'error' ? `Critical database timeout at route ${tx.endpoint}` : `High latency spike detected on endpoint ${tx.endpoint}`,
@@ -80,6 +167,15 @@ function injectMockTransaction(quiet = false) {
             state.alerts.pop();
         }
     }
+
+    // Persist to MongoDB in the background if connected
+    if (isMongoConnected) {
+        new Transaction(tx).save().catch(err => console.error("⚠️ [MongoDB] Failed to save transaction:", err.message));
+        if (alertItem) {
+            new Alert(alertItem).save().catch(err => console.error("⚠️ [MongoDB] Failed to save alert:", err.message));
+        }
+    }
+
     return tx;
 }
 
@@ -164,13 +260,21 @@ app.get('/api/v1/alerts', (req, res) => {
 });
 
 // Delete all dashboard alert messages
-app.delete('/api/v1/alerts', (req, res) => {
+app.delete('/api/v1/alerts', async (req, res) => {
     state.alerts = [];
+    if (isMongoConnected) {
+        try {
+            await Alert.deleteMany({});
+            console.log("🧹 [MongoDB] Alerts database collection flushed.");
+        } catch (err) {
+            console.error("⚠️ [MongoDB] Failed to flush alerts in DB:", err.message);
+        }
+    }
     res.json({ message: "Alerts queue flushed." });
 });
 
 // Execute custom backend terminal commands
-app.post('/api/v1/terminal', (req, res) => {
+app.post('/api/v1/terminal', async (req, res) => {
     const { command } = req.body;
     if (!command) {
         return res.status(400).json({ error: "No query parameters received." });
@@ -196,12 +300,27 @@ app.post('/api/v1/terminal', (req, res) => {
         case 'db_stats':
             const errCount = state.transactions.filter(t => t.status === 'error').length;
             const warnCount = state.transactions.filter(t => t.status === 'warning').length;
+            
+            let dbMode = "IN-MEMORY FALLBACK (Active)";
+            let mongoCountText = "";
+            if (isMongoConnected) {
+                dbMode = "MONGODB CLUSTER (Online)";
+                try {
+                    const totalTx = await Transaction.countDocuments();
+                    const totalAl = await Alert.countDocuments();
+                    mongoCountText = `\n  MONGO TRANSCTNS: ${totalTx} records\n  MONGO ALERTS   : ${totalAl} records`;
+                } catch (e) {
+                    mongoCountText = `\n  MONGO DB ERROR : ${e.message}`;
+                }
+            }
+
             response = `LEDGER DUMP REPORT:
-  TOTAL ENTRIES  : ${state.transactions.length} In-Memory
+  DATABASE MODE  : ${dbMode}
+  TOTAL ENTRIES  : ${state.transactions.length} In Cache
   CACHE BUFFER   : Active Flush enabled
   FAULT RATIO    : ${state.faultRate * 100}% Injected
-  ERROR COMMITS  : ${errCount} records flagged
-  WARN ALERTS    : ${warnCount} records flagged`;
+  ERROR COMMITS  : ${errCount} cached records flagged
+  WARN ALERTS    : ${warnCount} cached records flagged${mongoCountText}`;
             break;
 
         case 'trigger_error':
@@ -215,13 +334,27 @@ app.post('/api/v1/terminal', (req, res) => {
                 timeStr: new Date().toLocaleTimeString()
             };
             state.transactions.unshift(tx);
-            state.alerts.unshift({
+            if (state.transactions.length > 50) {
+                state.transactions.pop();
+            }
+
+            const alertItem = {
                 id: 'AL-' + Math.floor(1000 + Math.random() * 9000),
                 txId: tx.id,
                 message: `Critical database timeout at route ${tx.endpoint}`,
                 type: tx.status,
                 time: tx.timeStr
-            });
+            };
+            state.alerts.unshift(alertItem);
+            if (state.alerts.length > 15) {
+                state.alerts.pop();
+            }
+
+            if (isMongoConnected) {
+                new Transaction(tx).save().catch(err => console.error("⚠️ [MongoDB] Failed to save trigger_error transaction:", err.message));
+                new Alert(alertItem).save().catch(err => console.error("⚠️ [MongoDB] Failed to save trigger_error alert:", err.message));
+            }
+
             response = `SYSTEM ERROR INJECTED: Collapsing quantum entanglements at ${tx.endpoint}. Log written under ID ${tx.id}.`;
             break;
 
